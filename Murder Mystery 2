@@ -1,0 +1,249 @@
+--[[
+    MM2 Hub Script by Copilot
+    Функции:
+    - ESP игроков
+    - Knife Aura
+    - AutoFarm (автоматическое убийство)
+    - Auto Collect Coins
+    - Телепорт к игрокам
+    - Speed/JumpChanger
+    - Защита от убийства
+    - Удобный Rayfield GUI
+]]
+
+-- Загрузка Rayfield GUI
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source.lua'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "MM2 Ultimate Hub",
+    LoadingTitle = "MM2 Hub by Copilot",
+    LoadingSubtitle = "Лучший скрипт для Murder Mystery 2",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "MM2HubCopilot"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "",
+        RememberJoins = false
+    },
+    KeySystem = false,
+})
+
+local ESPenabled = false
+local KnifeAuraEnabled = false
+local AutoFarmEnabled = false
+local CoinFarmEnabled = false
+local AntiKillEnabled = false
+
+-- ESP функция
+function EnableESP()
+    for _,player in pairs(game.Players:GetPlayers()) do
+        if player ~= game.Players.LocalPlayer and player.Character and not player.Character:FindFirstChild("MM2ESP") then
+            local box = Instance.new("Highlight", player.Character)
+            box.Name = "MM2ESP"
+            box.FillColor = Color3.fromRGB(255,0,0)
+            box.OutlineColor = Color3.fromRGB(255,255,255)
+            box.FillTransparency = 0.5
+            box.OutlineTransparency = 0
+        end
+    end
+end
+
+function DisableESP()
+    for _,player in pairs(game.Players:GetPlayers()) do
+        if player.Character and player.Character:FindFirstChild("MM2ESP") then
+            player.Character.MM2ESP:Destroy()
+        end
+    end
+end
+
+-- Knife Aura
+function KnifeAura()
+    while KnifeAuraEnabled do
+        wait(0.2)
+        local lp = game.Players.LocalPlayer
+        if lp.Character and lp.Character:FindFirstChild("Knife") then
+            for _,player in pairs(game.Players:GetPlayers()) do
+                if player ~= lp and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    local dist = (lp.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                    if dist < 10 then
+                        -- Атакуем игрока
+                        local args = {[1] = player.Character.Humanoid}
+                        game:GetService("ReplicatedStorage").Events.ThrowKnife:FireServer(unpack(args))
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- AutoKill
+function AutoFarm()
+    while AutoFarmEnabled do
+        wait(0.5)
+        local lp = game.Players.LocalPlayer
+        for _,player in pairs(game.Players:GetPlayers()) do
+            if player ~= lp and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                lp.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame + Vector3.new(0,2,0)
+                wait(0.2)
+            end
+        end
+    end
+end
+
+-- Авто сбор монет
+function AutoCollectCoins()
+    while CoinFarmEnabled do
+        wait(0.5)
+        for _,coin in pairs(workspace:GetChildren()) do
+            if coin.Name == "Coin" and coin:IsA("Part") then
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = coin.CFrame + Vector3.new(0,2,0)
+                wait(0.1)
+            end
+        end
+    end
+end
+
+-- Телепорт
+function TeleportToPlayer(target)
+    local lp = game.Players.LocalPlayer
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0,2,0)
+    end
+end
+
+-- Анти-убийство
+function EnableAntiKill()
+    local lp = game.Players.LocalPlayer
+    lp.CharacterAdded:Connect(function(char)
+        wait(1)
+        if char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.Anchored = true
+        end
+    end)
+    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        lp.Character.HumanoidRootPart.Anchored = true
+    end
+end
+
+function DisableAntiKill()
+    local lp = game.Players.LocalPlayer
+    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        lp.Character.HumanoidRootPart.Anchored = false
+    end
+end
+
+-- GUI
+local Main = Window:CreateTab("Главное", 4483362458)
+local Farm = Window:CreateTab("Фарм", 4483362458)
+local Misc = Window:CreateTab("Прочее", 4483362458)
+
+Main:CreateToggle({
+    Name = "ESP игроков",
+    CurrentValue = false,
+    Flag = "ESPPlayers",
+    Callback = function(v)
+        ESPenabled = v
+        if v then
+            EnableESP()
+        else
+            DisableESP()
+        end
+    end,
+})
+
+Main:CreateToggle({
+    Name = "Knife Aura",
+    CurrentValue = false,
+    Flag = "KnifeAura",
+    Callback = function(v)
+        KnifeAuraEnabled = v
+        if v then
+            spawn(KnifeAura)
+        end
+    end,
+})
+
+Farm:CreateToggle({
+    Name = "AutoFarm (убивать всех)",
+    CurrentValue = false,
+    Flag = "AutoFarm",
+    Callback = function(v)
+        AutoFarmEnabled = v
+        if v then
+            spawn(AutoFarm)
+        end
+    end,
+})
+
+Farm:CreateToggle({
+    Name = "Auto Collect Coins",
+    CurrentValue = false,
+    Flag = "AutoCoins",
+    Callback = function(v)
+        CoinFarmEnabled = v
+        if v then
+            spawn(AutoCollectCoins)
+        end
+    end,
+})
+
+Misc:CreateDropdown({
+    Name = "Телепорт к игроку",
+    Options = (function()
+        local opts = {}
+        for _,p in pairs(game.Players:GetPlayers()) do
+            if p ~= game.Players.LocalPlayer then
+                table.insert(opts, p.Name)
+            end
+        end
+        return opts
+    end)(),
+    CurrentOption = nil,
+    MultiSelection = false,
+    Flag = "TeleportPlayer",
+    Callback = function(v)
+        local target = game.Players:FindFirstChild(v)
+        TeleportToPlayer(target)
+    end,
+})
+
+Misc:CreateSlider({
+    Name = "Скорость",
+    Range = {16, 100},
+    Increment = 1,
+    CurrentValue = 16,
+    Flag = "Speed",
+    Callback = function(v)
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = v
+    end,
+})
+
+Misc:CreateSlider({
+    Name = "Высота прыжка",
+    Range = {50, 200},
+    Increment = 5,
+    CurrentValue = 50,
+    Flag = "JumpPower",
+    Callback = function(v)
+        game.Players.LocalPlayer.Character.Humanoid.JumpPower = v
+    end,
+})
+
+Misc:CreateToggle({
+    Name = "Анти-убийство",
+    CurrentValue = false,
+    Flag = "AntiKill",
+    Callback = function(v)
+        AntiKillEnabled = v
+        if v then
+            EnableAntiKill()
+        else
+            DisableAntiKill()
+        end
+    end,
+})
+
+Rayfield:LoadConfiguration()
